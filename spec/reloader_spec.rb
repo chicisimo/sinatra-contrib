@@ -88,31 +88,31 @@ describe Sinatra::Reloader do
     end
 
     it "doesn't mess up the application" do
-      expect(get('/foo').body).to eq('foo')
+      get('/foo').body.should == 'foo'
     end
 
     it "knows when a route has been modified" do
       update_app_file(:routes => ['get("/foo") { "bar" }'])
-      expect(get('/foo').body).to eq('bar')
+      get('/foo').body.should == 'bar'
     end
 
     it "knows when a route has been added" do
       update_app_file(
         :routes => ['get("/foo") { "foo" }', 'get("/bar") { "bar" }']
       )
-      expect(get('/foo').body).to eq('foo')
-      expect(get('/bar').body).to eq('bar')
+      get('/foo').body.should == 'foo'
+      get('/bar').body.should == 'bar'
     end
 
     it "knows when a route has been removed" do
       update_app_file(:routes => ['get("/bar") { "bar" }'])
-      expect(get('/foo').status).to eq(404)
+      get('/foo').status.should == 404
     end
 
     it "doesn't try to reload a removed file" do
       update_app_file(:routes => ['get("/foo") { "i shall not be reloaded" }'])
       FileUtils.rm app_file_path
-      expect(get('/foo').body.strip).to eq('foo')
+      get('/foo').body.strip.should == 'foo'
     end
   end
 
@@ -125,7 +125,7 @@ describe Sinatra::Reloader do
     end
 
     it "doesn't mess up the application" do
-      expect(get('/foo').body.strip).to eq('foo')
+      get('/foo').body.strip.should == 'foo'
     end
 
     it "reloads inline templates in the app file" do
@@ -133,7 +133,7 @@ describe Sinatra::Reloader do
         :routes => ['get("/foo") { erb :foo }'],
         :inline_templates => { :foo => 'bar' }
       )
-      expect(get('/foo').body.strip).to eq('bar')
+      get('/foo').body.strip.should == 'bar'
     end
 
     it "reloads inline templates in other file" do
@@ -144,11 +144,11 @@ describe Sinatra::Reloader do
       end
       require template_file_path
       app_const.inline_templates= template_file_path
-      expect(get('/foo').body.strip).to eq('foo')
+      get('/foo').body.strip.should == 'foo'
       update_file(template_file_path) do |f|
         f.write "__END__\n\n@@foo\nbar"
       end
-      expect(get('/foo').body.strip).to eq('bar')
+      get('/foo').body.strip.should == 'bar'
     end
   end
 
@@ -160,7 +160,7 @@ describe Sinatra::Reloader do
         :middlewares => [Rack::Head]
       )
       get('/foo') # ...to perform the reload
-      expect(app_const.middleware).not_to be_empty
+      app_const.middleware.should_not be_empty
     end
 
     it "knows when a middleware has been removed" do
@@ -170,7 +170,7 @@ describe Sinatra::Reloader do
       )
       update_app_file(:routes => ['get("/foo") { "foo" }'])
       get('/foo') # ...to perform the reload
-      expect(app_const.middleware).to be_empty
+      app_const.middleware.should be_empty
     end
   end
 
@@ -229,20 +229,20 @@ describe Sinatra::Reloader do
     end
 
     it "doesn't mess up the application" do
-      expect(get('/secret')).to be_client_error
-      expect(get('/secret').body.strip).to eq('Access forbiden')
+      get('/secret').should be_client_error
+      get('/secret').body.strip.should == 'Access forbiden'
     end
 
     it "knows when a error has been added" do
       update_app_file(:errors => { 404 => "'Nowhere'" })
-      expect(get('/nowhere')).to be_not_found
-      expect(get('/nowhere').body).to eq('Nowhere')
+      get('/nowhere').should be_not_found
+      get('/nowhere').body.should == 'Nowhere'
     end
 
     it "knows when a error has been removed" do
       update_app_file(:routes => ['get("/secret") { 403 }'])
-      expect(get('/secret')).to be_client_error
-      expect(get('/secret').body).not_to eq('Access forbiden')
+      get('/secret').should be_client_error
+      get('/secret').body.should_not == 'Access forbiden'
     end
 
     it "knows when a error has been modified" do
@@ -250,8 +250,8 @@ describe Sinatra::Reloader do
         :routes => ['get("/secret") { 403 }'],
         :errors => { 403 => "'What are you doing here?'" }
       )
-      expect(get('/secret')).to be_client_error
-      expect(get('/secret').body).to eq('What are you doing here?')
+      get('/secret').should be_client_error
+      get('/secret').body.should == 'What are you doing here?'
     end
   end
 
@@ -352,20 +352,20 @@ describe Sinatra::Reloader do
     it "allows to specify a file to stop from being reloaded" do
       app_const.dont_reload app_file_path
       update_app_file(:routes => ['get("/foo") { "bar" }'])
-      expect(get('/foo').body.strip).to eq('foo')
+      get('/foo').body.strip.should == 'foo'
     end
 
     it "allows to specify a glob to stop matching files from being reloaded" do
       app_const.dont_reload '**/*.rb'
       update_app_file(:routes => ['get("/foo") { "bar" }'])
-      expect(get('/foo').body.strip).to eq('foo')
+      get('/foo').body.strip.should == 'foo'
     end
 
     it "doesn't interfere with other application's reloading policy" do
       app_const.dont_reload '**/*.rb'
       setup_example_app(:routes => ['get("/foo") { "foo" }'])
       update_app_file(:routes => ['get("/foo") { "bar" }'])
-      expect(get('/foo').body.strip).to eq('bar')
+      get('/foo').body.strip.should == 'bar'
     end
   end
 
@@ -382,19 +382,19 @@ describe Sinatra::Reloader do
     end
 
     it "allows to specify a file to be reloaded" do
-      expect(get('/foo').body.strip).to eq('foo')
+      get('/foo').body.strip.should == 'foo'
       update_file(@foo_path) do |f|
         f.write 'class Foo; def self.foo() "bar" end end'
       end
-      expect(get('/foo').body.strip).to eq('bar')
+      get('/foo').body.strip.should == 'bar'
     end
 
     it "allows to specify glob to reaload matching files" do
-      expect(get('/foo').body.strip).to eq('foo')
+      get('/foo').body.strip.should == 'foo'
       update_file(@foo_path) do |f|
         f.write 'class Foo; def self.foo() "bar" end end'
       end
-      expect(get('/foo').body.strip).to eq('bar')
+      get('/foo').body.strip.should == 'bar'
     end
 
     it "doesn't try to reload a removed file" do
@@ -402,17 +402,17 @@ describe Sinatra::Reloader do
         f.write 'class Foo; def self.foo() "bar" end end'
       end
       FileUtils.rm @foo_path
-      expect(get('/foo').body.strip).to eq('foo')
+      get('/foo').body.strip.should == 'foo'
     end
 
     it "doesn't interfere with other application's reloading policy" do
       app_const.also_reload '**/*.rb'
       setup_example_app(:routes => ['get("/foo") { Foo.foo }'])
-      expect(get('/foo').body.strip).to eq('foo')
+      get('/foo').body.strip.should == 'foo'
       update_file(@foo_path) do |f|
         f.write 'class Foo; def self.foo() "bar" end end'
       end
-      expect(get('/foo').body.strip).to eq('foo')
+      get('/foo').body.strip.should == 'foo'
     end
   end
 
@@ -434,7 +434,7 @@ describe Sinatra::Reloader do
       :parent => 'Parent'
     )
 
-    expect(get('/foo').body).to eq('bar')
+    get('/foo').body.should == 'bar'
   end
 
 end

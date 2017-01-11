@@ -27,15 +27,6 @@ module Sinatra
   #     # layout.erb
   #     <%= yield_content :some_key %>
   #
-  # If you have provided +yield_content+ with a block and no content for the
-  # specified key is found, it will render the results of the block provided
-  # to yield_content.
-  #
-  #     # layout.erb
-  #     <%= yield_content :some_key_with_no_content do %>
-  #       <chunk of="default html">...</chunk>
-  #     <% end %>
-  #
   # === Classic Application
   #
   # To use the helpers in a classic application all you need to do is require
@@ -64,7 +55,7 @@ module Sinatra
   #
   # For example, some of your views might need a few javascript tags and
   # stylesheets, but you don't want to force this files in all your pages.
-  # Then you can put <tt><%= yield_content :scripts_and_styles %></tt> on your
+  # Then you can put <tt><% yield_content :scripts_and_styles %></tt> on your
   # layout, inside the <head> tag, and each view can call <tt>content_for</tt>
   # setting the appropriate set of tags that should be added to the layout.
   #
@@ -76,10 +67,6 @@ module Sinatra
     #     <% content_for :head do %>
     #       <script type="text/javascript" src="/foo.js"></script>
     #     <% end %>
-    #
-    # You can also pass an immediate value instead of a block:
-    #
-    #     <% content_for :title, "foo" %>
     #
     # You can call +content_for+ multiple times with the same key
     # (in the example +:head+), and when you render the blocks for
@@ -107,13 +94,6 @@ module Sinatra
       content_blocks[key.to_sym].any?
     end
 
-    # Unset a named block of content. For example:
-    #
-    #    <% clear_content_for :head %>
-    def clear_content_for(key)
-      content_blocks.delete(key.to_sym) if content_for?(key)
-    end
-
     # Render the captured blocks for a given key. For example:
     #
     #     <head>
@@ -132,7 +112,6 @@ module Sinatra
     # Would pass <tt>1</tt> and <tt>2</tt> to all the blocks registered
     # for <tt>:head</tt>.
     def yield_content(key, *args)
-      return yield(*args) if block_given? && content_blocks[key.to_sym].empty?
       content_blocks[key.to_sym].map { |b| capture(*args, &b) }.join
     end
 

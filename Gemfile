@@ -1,12 +1,10 @@
 source "https://rubygems.org" unless ENV['QUICK']
 gemspec
 
-gem 'mustermann', github: 'sinatra/mustermann'
-gem 'sinatra', github: 'sinatra/sinatra'
+gem 'sinatra', :github => 'sinatra/sinatra'
 
 group :development, :test do
-
-  platform :jruby do
+  platform :ruby_18, :jruby do
     gem 'json'
     gem 'rdoc'
   end
@@ -17,7 +15,7 @@ group :development, :test do
 
   platform :jruby, :ruby do
     gem 'slim', '2.1.0'
-    gem 'liquid', '~> 2.6.x'
+    gem 'liquid', '2.6.1'
   end
 
   platform :ruby do
@@ -25,8 +23,6 @@ group :development, :test do
     gem 'nokogiri', '1.5.10'
     gem 'redcarpet', '2.3.0'
     gem 'yajl-ruby'
-    # ref is a dependency of therubyracer
-    gem 'ref'
     gem 'therubyracer'
   end
 
@@ -35,11 +31,12 @@ end
 
 # Allows stuff like `tilt=1.2.2 bundle install` or `tilt=master ...`.
 # Used by the CI.
-repos = { 'sinatra' => 'sinatra/sinatra', 'tilt' => 'rtomayko/tilt', 'rack' => 'rack/rack' }
-%w[sinatra tilt rack].each do |lib|
+github = "git://github.com/%s.git"
+repos = { 'tilt' => github % "rtomayko/tilt", 'rack' => github % "rack/rack" }
+%w[tilt rack].each do |lib|
   dep = (ENV[lib] || 'stable').sub "#{lib}-", ''
   dep = nil if dep == 'stable'
-  dep = {:github => repos[lib], :branch => dep} if dep and dep !~ /(\d+\.)+\d+/
-  gem lib, dep if dep
+  dep = {:git => repos[lib], :branch => dep} if dep and dep !~ /(\d+\.)+\d+/
+  gem lib, dep unless dep
 end
 

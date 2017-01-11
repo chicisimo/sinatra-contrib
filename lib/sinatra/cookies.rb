@@ -166,7 +166,7 @@ module Sinatra
       alias member?  has_key?
 
       def index(value)
-        warn "Hash#index is deprecated; use Hash#key"
+        warn "Hash#index is deprecated; use Hash#key" if RUBY_VERSION > '1.9'
         key(value)
       end
 

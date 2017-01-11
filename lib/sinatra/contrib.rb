@@ -19,13 +19,13 @@ module Sinatra
       helpers :JSON
       helpers :LinkHeader
       helpers :Streaming
-      helpers :RequiredParams
     end
 
     ##
     # Other extensions you don't want to be loaded unless needed.
     module Custom
       # register :Compass
+      register :Decompile
       register :Reloader
     end
 
