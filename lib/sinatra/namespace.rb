@@ -1,6 +1,6 @@
 require 'backports'
 require 'sinatra/base'
-require 'sinatra/decompile'
+require 'mustermann'
 
 module Sinatra
 
@@ -48,6 +48,14 @@ module Sinatra
   #       # More admin routes...
   #     end
   #
+  # Regex is also accepted:
+  #
+  #     namespace /\/posts\/([^\/&?]+)\// do
+  #       get { haml :blog }
+  #
+  #       # More blog routes...
+  #     end
+  #
   # When you define a filter or an error handler, or register an extension or a
   # set of helpers within a namespace, they only affect the routes defined in
   # it.  For instance, lets define a before filter to prevent the access of
@@ -89,6 +97,18 @@ module Sinatra
   #       # More admin routes...
   #     end
   #
+  # Redirecting within the namespace can be done using redirect_to:
+  #
+  #     namespace '/admin' do
+  #       get '/foo'  do
+  #         redirect_to '/bar' # Redirects to /admin/bar
+  #       end
+  #
+  #       get '/foo' do
+  #         redirect '/bar' # Redirects to /bar
+  #       end
+  #     end
+  #
   # === Classic Application Setup
   #
   # To be able to use namespaces in a classic application all you need to do is
@@ -97,7 +117,8 @@ module Sinatra
   #     require "sinatra"
   #     require "sinatra/namespace"
   #
-  #     # The rest of your classic application code goes here...
+  #     namespace '/users' do
+  #     end
   #
   # === Modular Application Setup
   #
@@ -110,8 +131,59 @@ module Sinatra
   #     class MyApp < Sinatra::Base
   #       register Sinatra::Namespace
   #
-  #       # The rest of your modular application code goes here...
+  #       namespace '/users' do
+  #       end
   #     end
+  #
+  # === Within an extension
+  #
+  # To be able to use namespaces within an extension, you need to first create
+  # an extension. This includes defining the `registered(app)` method in the
+  # module.
+  #
+  #     require 'sinatra/base' # For creating Sinatra extensions
+  #     require 'sinatra/namespace' # To create namespaces
+  #
+  #     module Zomg # Keep everything under "Zomg" namespace for sanity
+  #       module Routes # Define a new "Routes" module
+  #
+  #         self.registered(app)
+  #           # First, register the Namespace extension
+  #           app.register Sinatra::Namespace
+  #
+  #           # This defines an `/api` namespace on the application
+  #           app.namespace '/api' do
+  #             get '/users' do
+  #               # do something with `GET "/api/users"`
+  #             end
+  #           end
+  #
+  #         end
+  #       end
+  #
+  #       # Lastly, register the extension to use in our app
+  #       Sinatra.register Routes
+  #     end
+  #
+  # In order to use this extension, is the same as any other Sinatra extension:
+  #
+  #     module Zomg
+  #       # Define our app class, we use modular app for this example
+  #       class App < Sinatra::Base
+  #         # this gives us all the namespaces we defined earlier
+  #         register Routes
+  #
+  #         get '/' do
+  #           "Welcome to my application!"
+  #         end
+  #       end
+  #     end
+  #
+  #     Zomg::App.run! # Don't forget to start your app ;)
+  #
+  # Phew! That was a mouthful.
+  #
+  # I hope that helps you use `Sinatra::Namespace` in every way imaginable!
   #
   module Namespace
     def self.new(base, pattern, conditions = {}, &block)
@@ -137,6 +209,10 @@ module Sinatra
       def template_cache
         super.fetch(:nested, @namespace) { Tilt::Cache.new }
       end
+
+      def redirect_to(uri, *args)
+        redirect("#{@namespace.pattern}#{uri}", *args)
+      end
     end
 
     module SharedMethods
@@ -147,7 +223,6 @@ module Sinatra
 
     module NamespacedMethods
       include SharedMethods
-      include Sinatra::Decompile
       attr_reader :base, :templates
 
       def self.prefixed(*names)
@@ -175,7 +250,7 @@ module Sinatra
       end
 
       def not_found(&block)
-        error(404, &block)
+        error(Sinatra::NotFound, &block)
       end
 
       def errors
@@ -187,9 +262,11 @@ module Sinatra
       end
 
       def error(*codes, &block)
-        args  = Sinatra::Base.send(:compile!, "ERROR", /^#{@pattern}/, block)
+        args  = Sinatra::Base.send(:compile!, "ERROR", /.*/, block)
         codes = codes.map { |c| Array(c) }.flatten
         codes << Exception if codes.empty?
+        codes << Sinatra::NotFound if codes.include?(404)
+
         codes.each do |c|
           errors = @errors[c] ||= []
           errors << args
@@ -225,6 +302,10 @@ module Sinatra
         template name, &block
       end
 
+      def pattern
+        @pattern
+      end
+
       private
 
       def app
@@ -245,22 +326,14 @@ module Sinatra
       end
 
       def prefixed_path(a, b)
-        return a || b || // unless a and b
-        a, b = decompile(a), decompile(b) unless a.class == b.class
-        a, b = regexpify(a), regexpify(b) unless a.class == b.class
-        path = a.class.new "#{a}#{b}"
-        path = /^#{path}$/ if path.is_a? Regexp and base == app
-        path
-      end
+        return a || b || /.*/ unless a and b
+        return Mustermann.new(b) if a == /.*/
 
-      def regexpify(pattern)
-        pattern = Sinatra::Base.send(:compile, pattern).first.inspect
-        pattern.gsub! /^\/(\^|\\A)?|(\$|\\Z)?\/$/, ''
-        Regexp.new pattern
+        Mustermann.new(a) + Mustermann.new(b)
       end
 
       def prefixed(method, pattern = nil, conditions = {}, &block)
-        default = '*' if method == :before or method == :after
+        default = /.*/ if method == :before or method == :after
         pattern, conditions = compile pattern, conditions, default
         result = base.send(method, pattern, conditions, &block)
         invoke_hook :route_added, method.to_s.upcase, pattern, block
@@ -280,7 +353,7 @@ module Sinatra
       include SharedMethods
     end
 
-    def self.extend_object(base)
+    def self.extended(base)
       base.extend BaseMethods
     end
   end
