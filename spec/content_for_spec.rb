@@ -11,7 +11,7 @@ describe Sinatra::ContentFor do
   Tilt.prefer Tilt::ERBTemplate
 
   extend Forwardable
-  def_delegators :subject, :content_for, :clear_content_for, :yield_content
+  def_delegators :subject, :content_for, :yield_content
   def render(engine, template)
     subject.send(:render, engine, template, :layout => false).gsub(/\s/, '')
   end
@@ -19,22 +19,17 @@ describe Sinatra::ContentFor do
   describe "without templates" do
     it 'renders blocks declared with the same key you use when rendering' do
       content_for(:foo) { "foo" }
-      expect(yield_content(:foo)).to eq("foo")
+      yield_content(:foo).should == "foo"
     end
 
     it 'renders blocks more than once' do
       content_for(:foo) { "foo" }
-      3.times { expect(yield_content(:foo)).to eq("foo") }
+      3.times { yield_content(:foo).should == "foo" }
     end
 
     it 'does not render a block with a different key' do
       content_for(:bar) { "bar" }
-      expect(yield_content(:foo)).to be_empty
-    end
-
-    it 'renders default content if no block matches the key and a default block is specified' do
-      content_for(:bar) { "bar" }
-      expect(yield_content(:foo) { "foo" }).to eq("foo")
+      yield_content(:foo).should be_empty
     end
 
     it 'renders multiple blocks with the same key' do
@@ -42,7 +37,7 @@ describe Sinatra::ContentFor do
       content_for(:foo) { "bar" }
       content_for(:bar) { "WON'T RENDER ME" }
       content_for(:foo) { "baz" }
-      expect(yield_content(:foo)).to eq("foobarbaz")
+      yield_content(:foo).should == "foobarbaz"
     end
 
     it 'renders multiple blocks more than once' do
@@ -50,25 +45,13 @@ describe Sinatra::ContentFor do
       content_for(:foo) { "bar" }
       content_for(:bar) { "WON'T RENDER ME" }
       content_for(:foo) { "baz" }
-      3.times { expect(yield_content(:foo)).to eq("foobarbaz") }
+      3.times { yield_content(:foo).should == "foobarbaz" }
     end
 
     it 'passes values to the blocks' do
       content_for(:foo) { |a| a.upcase }
-      expect(yield_content(:foo, 'a')).to eq("A")
-      expect(yield_content(:foo, 'b')).to eq("B")
-    end
-
-    it 'clears named blocks with the specified key' do
-      content_for(:foo) { "foo" }
-      expect(yield_content(:foo)).to eq("foo")
-      clear_content_for(:foo)
-      expect(yield_content(:foo)).to be_empty
-    end
-
-    it 'takes an immediate value instead of a block' do
-      content_for(:foo, "foo")
-      expect(yield_content(:foo)).to eq("foo")
+      yield_content(:foo, 'a').should == "A"
+      yield_content(:foo, 'b').should == "B"
     end
   end
 
@@ -81,61 +64,56 @@ describe Sinatra::ContentFor do
         begin
           require inner
         rescue LoadError => e
-          skip "Skipping: " << e.message
+          pending "Skipping: " << e.message
         end
       end
 
       describe "with yield_content in Ruby" do
         it 'renders blocks declared with the same key you use when rendering' do
           render inner, :same_key
-          expect(yield_content(:foo).strip).to eq("foo")
+          yield_content(:foo).strip.should == "foo"
         end
 
         it 'renders blocks more than once' do
           render inner, :same_key
-          3.times { expect(yield_content(:foo).strip).to eq("foo") }
+          3.times { yield_content(:foo).strip.should == "foo" }
         end
 
         it 'does not render a block with a different key' do
           render inner, :different_key
-          expect(yield_content(:foo)).to be_empty
-        end
-
-        it 'renders default content if no block matches the key and a default block is specified' do
-          render inner, :different_key
-          expect(yield_content(:foo) { "foo" }).to eq("foo")
+          yield_content(:foo).should be_empty
         end
 
         it 'renders multiple blocks with the same key' do
           render inner, :multiple_blocks
-          expect(yield_content(:foo).gsub(/\s/, '')).to eq("foobarbaz")
+          yield_content(:foo).gsub(/\s/, '').should == "foobarbaz"
         end
 
         it 'renders multiple blocks more than once' do
           render inner, :multiple_blocks
-          3.times { expect(yield_content(:foo).gsub(/\s/, '')).to eq("foobarbaz") }
+          3.times { yield_content(:foo).gsub(/\s/, '').should == "foobarbaz" }
         end
 
         it 'passes values to the blocks' do
           render inner, :takes_values
-          expect(yield_content(:foo, 1, 2).gsub(/\s/, '')).to eq("<i>1</i>2")
+          yield_content(:foo, 1, 2).gsub(/\s/, '').should == "<i>1</i>2"
         end
       end
 
       describe "with content_for in Ruby" do
         it 'renders blocks declared with the same key you use when rendering' do
           content_for(:foo) { "foo" }
-          expect(render(inner, :layout)).to eq("foo")
+          render(inner, :layout).should == "foo"
         end
 
         it 'renders blocks more than once' do
           content_for(:foo) { "foo" }
-          expect(render(inner, :multiple_yields)).to eq("foofoofoo")
+          render(inner, :multiple_yields).should == "foofoofoo"
         end
 
         it 'does not render a block with a different key' do
           content_for(:bar) { "foo" }
-          expect(render(inner, :layout)).to be_empty
+          render(inner, :layout).should be_empty
         end
 
         it 'renders multiple blocks with the same key' do
@@ -143,7 +121,7 @@ describe Sinatra::ContentFor do
           content_for(:foo) { "bar" }
           content_for(:bar) { "WON'T RENDER ME" }
           content_for(:foo) { "baz" }
-          expect(render(inner, :layout)).to eq("foobarbaz")
+          render(inner, :layout).should == "foobarbaz"
         end
 
         it 'renders multiple blocks more than once' do
@@ -151,31 +129,24 @@ describe Sinatra::ContentFor do
           content_for(:foo) { "bar" }
           content_for(:bar) { "WON'T RENDER ME" }
           content_for(:foo) { "baz" }
-          expect(render(inner, :multiple_yields)).to eq("foobarbazfoobarbazfoobarbaz")
+          render(inner, :multiple_yields).should == "foobarbazfoobarbazfoobarbaz"
         end
 
         it 'passes values to the blocks' do
           content_for(:foo) { |a,b| "<i>#{a}</i>#{b}" }
-          expect(render(inner, :passes_values)).to eq("<i>1</i>2")
-        end
-
-        it 'clears named blocks with the specified key' do
-          content_for(:foo) { "foo" }
-          expect(render(inner, :layout)).to eq("foo")
-          clear_content_for(:foo)
-          expect(render(inner, :layout)).to be_empty
+          render(inner, :passes_values).should == "<i>1</i>2"
         end
       end
 
       describe "with content_for? in Ruby" do
         it 'renders block if key is set' do
           content_for(:foo) { "foot" }
-          expect(render(inner, :footer)).to eq("foot")
+          render(inner, :footer).should == "foot"
         end
 
         it 'does not render a block if different key' do
           content_for(:different_key) { "foot" }
-          expect(render(inner, :footer)).to be_empty
+          render(inner, :footer).should be_empty
         end
       end
 
@@ -189,7 +160,7 @@ describe Sinatra::ContentFor do
             begin
               require outer
             rescue LoadError => e
-              skip "Skipping: " << e.message
+              pending "Skipping: " << e.message
             end
           end
 
@@ -206,33 +177,33 @@ describe Sinatra::ContentFor do
           end
 
           it 'renders blocks declared with the same key you use when rendering' do
-            expect(get('/same_key')).to be_ok
-            expect(body).to eq("foo")
+            get('/same_key').should be_ok
+            body.should == "foo"
           end
 
           it 'renders blocks more than once' do
-            expect(get('/multiple_yields/same_key')).to be_ok
-            expect(body).to eq("foofoofoo")
+            get('/multiple_yields/same_key').should be_ok
+            body.should == "foofoofoo"
           end
 
           it 'does not render a block with a different key' do
-            expect(get('/different_key')).to be_ok
-            expect(body).to be_empty
+            get('/different_key').should be_ok
+            body.should be_empty
           end
 
           it 'renders multiple blocks with the same key' do
-            expect(get('/multiple_blocks')).to be_ok
-            expect(body).to eq("foobarbaz")
+            get('/multiple_blocks').should be_ok
+            body.should == "foobarbaz"
           end
 
           it 'renders multiple blocks more than once' do
-            expect(get('/multiple_yields/multiple_blocks')).to be_ok
-            expect(body).to eq("foobarbazfoobarbazfoobarbaz")
+            get('/multiple_yields/multiple_blocks').should be_ok
+            body.should == "foobarbazfoobarbazfoobarbaz"
           end
 
           it 'passes values to the blocks' do
-            expect(get('/passes_values/takes_values')).to be_ok
-            expect(body).to eq("<i>1</i>2")
+            get('/passes_values/takes_values').should be_ok
+            body.should == "<i>1</i>2"
           end
         end
       end

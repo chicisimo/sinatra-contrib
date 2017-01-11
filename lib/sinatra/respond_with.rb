@@ -1,6 +1,8 @@
 require 'sinatra/json'
 require 'sinatra/base'
 
+$KCODE = "UTF-8"
+
 module Sinatra
   #
   # = Sinatra::RespondWith
@@ -115,7 +117,7 @@ module Sinatra
             @app.halt result
           end
         end
-        @app.halt 500, "Unknown template engine"
+        @app.halt 406
       end
 
       def method_missing(method, *args, &block)
@@ -177,11 +179,7 @@ module Sinatra
           if Tilt.respond_to?(:mappings)
             klass = Tilt.mappings[Tilt.normalize(engine)].first
           else
-            begin
-              klass = Tilt[engine]
-            rescue LoadError
-              next
-            end
+            klass = Tilt[engine]
           end
           find_template(settings.views, template, klass) do |file|
             next unless File.exist? file
@@ -251,7 +249,7 @@ module Sinatra
       }
       engines.default = []
       (defined? JRUBY_VERSION) ? jrubyify(engines) : engines
-    end
+    end  
 
     def self.registered(base)
       base.set :ext_map, Hash.new { |h,k| h[k] = [] }

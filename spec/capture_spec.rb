@@ -23,11 +23,11 @@ describe Sinatra::Capture do
     require "#{engine}"
 
     it "captures content" do
-      expect(render(engine, "simple_#{lang}")).to eq("Say Hello World!")
+      render(engine, "simple_#{lang}").should == "Say Hello World!"
     end
 
     it "allows nested captures" do
-      expect(render(engine, "nested_#{lang}")).to eq("Say Hello World!")
+      render(engine, "nested_#{lang}").should == "Say Hello World!"
     end
   end
 
@@ -39,12 +39,12 @@ describe Sinatra::Capture do
     it_behaves_like "a template language", :erb
 
     it "handles utf-8 encoding" do
-      expect(render(:erb, "utf_8")).to eq("UTF-8 –")
+      render(:erb, "utf_8").should == "UTF-8 –"
     end
 
     it "handles ISO-8859-1 encoding" do
-      expect(render(:erb, "iso_8859_1")).to eq("ISO-8859-1 -")
-    end
+      render(:erb, "iso_8859_1").should == "ISO-8859-1 -"
+    end if RUBY_VERSION >= '1.9'
   end
 end
 
