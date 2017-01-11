@@ -75,7 +75,8 @@ module Sinatra
     #
     # Your blocks can also receive values, which are passed to them
     # by <tt>yield_content</tt>
-    def content_for(key, &block)
+    def content_for(key, value = nil, &block)
+      block ||= proc { |*| value }
       content_blocks[key.to_sym] << capture_later(&block)
     end
 
